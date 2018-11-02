@@ -3,14 +3,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:45023bfe70c23fb38ef43b7ea08b3bf7287a96c4648d5e82b2711e23b4d38db6"
+  digest = "1:d25fc710646c51e8ef87bf4a9edadb92d90a18e07afd7385199aed8f166bd426"
   name = "github.com/99designs/gqlgen"
   packages = [
+    ".",
+    "cmd",
+    "codegen",
+    "codegen/templates",
     "complexity",
     "gqlopencensus",
     "graphql",
     "graphql/introspection",
     "handler",
+    "internal/gopath",
+    "internal/imports",
   ]
   pruneopts = "UT"
   revision = "d2648580b441915b0a57b37b70b0e136bc20ea61"
@@ -63,6 +69,14 @@
   version = "v1.0.2"
 
 [[projects]]
+  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -77,6 +91,14 @@
   pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
+
+[[projects]]
+  digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
 
 [[projects]]
   branch = "master"
@@ -117,10 +139,35 @@
   pruneopts = "UT"
   revision = "b7e296877c6e5e01665044d943c8e6d10ce72a99"
 
+[[projects]]
+  branch = "master"
+  digest = "1:756a0ad87b2a82fc1f22f4f11a4cc1c0a101b18da225bf5d51e20c611e54c31a"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/buildutil",
+    "go/internal/cgo",
+    "go/loader",
+    "imports",
+    "internal/fastwalk",
+    "internal/gopathwalk",
+  ]
+  pruneopts = "UT"
+  revision = "92b943e6bff73e0dfe9e975d94043d8f31067b06"
+
+[[projects]]
+  digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/99designs/gqlgen",
     "github.com/99designs/gqlgen/gqlopencensus",
     "github.com/99designs/gqlgen/graphql",
     "github.com/99designs/gqlgen/graphql/introspection",
