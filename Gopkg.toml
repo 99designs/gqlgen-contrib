@@ -1,3 +1,5 @@
+required = ["github.com/99designs/gqlgen"]
+
 [[constraint]]
   branch = "master"
   name = "github.com/99designs/gqlgen"
