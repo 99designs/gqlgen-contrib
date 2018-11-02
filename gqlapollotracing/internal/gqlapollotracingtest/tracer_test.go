@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/99designs/gqlgen/gqlapollotracing"
+	"github.com/99designs/gqlgen-contrib/gqlapollotracing"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/stretchr/testify/assert"
 )
