@@ -1,4 +1,4 @@
-package gqlopencensus
+package gqlopentracing
 
 import (
 	"context"
