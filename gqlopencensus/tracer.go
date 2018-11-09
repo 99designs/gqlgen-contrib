@@ -113,7 +113,8 @@ func (tracerImpl) EndFieldExecution(ctx context.Context) {
 	errList := reqCtx.GetErrors(rc)
 	if len(errList) != 0 {
 		span.SetStatus(trace.Status{
-			Code: 2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
+			Code:    2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
+			Message: errList.Error(),
 		})
 		span.AddAttributes(
 			trace.BoolAttribute("resolver.hasError", true),
