@@ -2,6 +2,7 @@ package gqlopentracing
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/opentracing/opentracing-go"
@@ -67,14 +68,20 @@ func (tracerImpl) EndFieldExecution(ctx context.Context) {
 	span := opentracing.SpanFromContext(ctx)
 	rc := graphql.GetResolverContext(ctx)
 	reqCtx := graphql.GetRequestContext(ctx)
-	if reqCtx.HasError(rc) {
+
+	errList := reqCtx.GetErrors(rc)
+	if len(errList) != 0 {
 		ext.Error.Set(span, true)
 		span.LogFields(
 			log.String("event", "error"),
 		)
-		// TODO We need something like reqCtx.GetErrors(rc)
-		// log.String("message", err.Error()),
-		// log.String("error.kind", fmt.Sprintf("%T", err)),
+
+		for idx, err := range errList {
+			span.LogFields(
+				log.String(fmt.Sprintf("error.%d.message", idx), err.Error()),
+				log.String(fmt.Sprintf("error.%d.kind", idx), fmt.Sprintf("%T", err)),
+			)
+		}
 	}
 
 	defer span.Finish()
