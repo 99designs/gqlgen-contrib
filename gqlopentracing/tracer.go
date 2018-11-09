@@ -66,6 +66,8 @@ func (tracerImpl) StartFieldChildExecution(ctx context.Context) context.Context 
 
 func (tracerImpl) EndFieldExecution(ctx context.Context) {
 	span := opentracing.SpanFromContext(ctx)
+	defer span.Finish()
+
 	rc := graphql.GetResolverContext(ctx)
 	reqCtx := graphql.GetRequestContext(ctx)
 
@@ -83,8 +85,6 @@ func (tracerImpl) EndFieldExecution(ctx context.Context) {
 			)
 		}
 	}
-
-	defer span.Finish()
 }
 
 func (tracerImpl) EndOperationExecution(ctx context.Context) {
