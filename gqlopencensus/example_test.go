@@ -1,9 +1,10 @@
 package gqlopencensus_test
 
 import (
+	"log"
 	"net/http"
 
-	"github.com/99designs/gqlgen/gqlopencensus"
+	"github.com/99designs/gqlgen-contrib/gqlopencensus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/handler"
 )
@@ -20,5 +21,7 @@ func Example() {
 	)
 	http.Handle("/query", handler)
 
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
 }
