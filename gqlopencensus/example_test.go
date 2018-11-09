@@ -3,7 +3,7 @@ package gqlopencensus_test
 import (
 	"net/http"
 
-	"github.com/99designs/gqlgen/gqlopencensus"
+	"github.com/99designs/gqlgen-contrib/gqlopencensus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/handler"
 )
