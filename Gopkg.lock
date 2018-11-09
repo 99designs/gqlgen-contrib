@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d25fc710646c51e8ef87bf4a9edadb92d90a18e07afd7385199aed8f166bd426"
+  digest = "1:a56525fe2ec84d91dc624ea85dfc467b1fe6b9c9d738af4b29d94accf50e5184"
   name = "github.com/99designs/gqlgen"
   packages = [
     ".",
@@ -11,7 +11,6 @@
     "codegen",
     "codegen/templates",
     "complexity",
-    "gqlopencensus",
     "graphql",
     "graphql/introspection",
     "handler",
@@ -19,7 +18,7 @@
     "internal/imports",
   ]
   pruneopts = "UT"
-  revision = "d2648580b441915b0a57b37b70b0e136bc20ea61"
+  revision = "4bda3bc1291bdc0bc44e3057b5229d987eeecde2"
 
 [[projects]]
   digest = "1:cc306cae16c310ca360eaee3e563109e251832a3f6a13b26bf39cc6a43c7c9f6"
@@ -168,7 +167,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/99designs/gqlgen",
-    "github.com/99designs/gqlgen/gqlopencensus",
     "github.com/99designs/gqlgen/graphql",
     "github.com/99designs/gqlgen/graphql/introspection",
     "github.com/99designs/gqlgen/handler",

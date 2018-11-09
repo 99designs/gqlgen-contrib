@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/99designs/gqlgen/gqlopencensus"
+	"github.com/99designs/gqlgen-contrib/gqlopencensus"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/stretchr/testify/assert"
 	"github.com/vektah/gqlparser/ast"
