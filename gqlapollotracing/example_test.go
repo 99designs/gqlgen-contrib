@@ -1,6 +1,7 @@
 package gqlapollotracing_test
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/99designs/gqlgen-contrib/gqlapollotracing"
@@ -18,5 +19,7 @@ func Example() {
 	)
 	http.Handle("/query", handler)
 
-	http.ListenAndServe(":8080", nil)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
+	}
 }
