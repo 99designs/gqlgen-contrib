@@ -104,6 +104,28 @@ func (tracerImpl) StartFieldChildExecution(ctx context.Context) context.Context 
 func (tracerImpl) EndFieldExecution(ctx context.Context) {
 	span := trace.FromContext(ctx)
 	defer span.End()
+	if !span.IsRecordingEvents() {
+		return
+	}
+
+	rc := graphql.GetResolverContext(ctx)
+	reqCtx := graphql.GetRequestContext(ctx)
+	errList := reqCtx.GetErrors(rc)
+	if len(errList) != 0 {
+		span.SetStatus(trace.Status{
+			Code:    2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
+			Message: errList.Error(),
+		})
+		span.AddAttributes(
+			trace.BoolAttribute("resolver.hasError", true),
+		)
+		for idx, err := range errList {
+			span.AddAttributes(
+				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.message", idx), err.Error()),
+				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.kind", idx), fmt.Sprintf("%T", err)),
+			)
+		}
+	}
 }
 
 func (tracerImpl) EndOperationExecution(ctx context.Context) {
