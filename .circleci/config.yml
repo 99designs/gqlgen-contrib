@@ -2,11 +2,10 @@ version: 2
 jobs:
   build:
     docker:
-    - image: golang:1.9
+    - image: golang:1.13
     working_directory: /go/src/github.com/99designs/gqlgen-contrib
     steps:
     - checkout
-    - run: go mod vendor
     - run: go get -u github.com/alecthomas/gometalinter github.com/vektah/gorunpkg && gometalinter --install
     - run: go generate ./... && if [[ $(git --no-pager diff) ]] ; then echo "you need to run go generate" ; git --no-pager diff ; exit 1 ; fi
     - run: go test -race ./...
