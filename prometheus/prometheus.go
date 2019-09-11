@@ -23,6 +23,10 @@ var (
 )
 
 func Register() {
+	RegisterOn(prometheusclient.DefaultRegisterer)
+}
+
+func RegisterOn(registerer prometheusclient.Registerer) {
 	requestStartedCounter = prometheusclient.NewCounter(
 		prometheusclient.CounterOpts{
 			Name: "graphql_request_started_total",
@@ -65,7 +69,7 @@ func Register() {
 		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
 	}, []string{"exitStatus"})
 
-	prometheusclient.MustRegister(
+	registerer.MustRegister(
 		requestStartedCounter,
 		requestCompletedCounter,
 		resolverStartedCounter,
@@ -76,12 +80,16 @@ func Register() {
 }
 
 func UnRegister() {
-	prometheusclient.Unregister(requestStartedCounter)
-	prometheusclient.Unregister(requestCompletedCounter)
-	prometheusclient.Unregister(resolverStartedCounter)
-	prometheusclient.Unregister(resolverCompletedCounter)
-	prometheusclient.Unregister(timeToResolveField)
-	prometheusclient.Unregister(timeToHandleRequest)
+	UnRegisterFrom(prometheusclient.DefaultRegisterer)
+}
+
+func UnRegisterFrom(registerer prometheusclient.Registerer) {
+	registerer.Unregister(requestStartedCounter)
+	registerer.Unregister(requestCompletedCounter)
+	registerer.Unregister(resolverStartedCounter)
+	registerer.Unregister(resolverCompletedCounter)
+	registerer.Unregister(timeToResolveField)
+	registerer.Unregister(timeToHandleRequest)
 }
 
 func ResolverMiddleware() graphql.FieldMiddleware {
