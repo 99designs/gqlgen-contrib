@@ -6,6 +6,7 @@ jobs:
     working_directory: /go/src/github.com/99designs/gqlgen-contrib
     steps:
     - checkout
+    - run: go mod vendor
     - run: go get -u github.com/alecthomas/gometalinter github.com/vektah/gorunpkg && gometalinter --install
     - run: go generate ./... && if [[ $(git --no-pager diff) ]] ; then echo "you need to run go generate" ; git --no-pager diff ; exit 1 ; fi
     - run: go test -race ./...
