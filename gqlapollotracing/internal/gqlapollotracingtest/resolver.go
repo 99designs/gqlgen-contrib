@@ -9,12 +9,12 @@ import (
 
 func NewResolver() *Resolver {
 	return &Resolver{
-		todos: []Todo{
+		todos: []*Todo{
 			{
 				ID:   "Todo:1",
 				Text: "Play with cat",
 				Done: true,
-				User: User{
+				User: &User{
 					ID:   "User:foobar",
 					Name: "foobar",
 				},
@@ -24,7 +24,7 @@ func NewResolver() *Resolver {
 }
 
 type Resolver struct {
-	todos []Todo
+	todos []*Todo
 }
 
 func (r *Resolver) Mutation() MutationResolver {
@@ -36,11 +36,11 @@ func (r *Resolver) Query() QueryResolver {
 
 type mutationResolver struct{ *Resolver }
 
-func (r *mutationResolver) CreateTodo(ctx context.Context, input NewTodo) (Todo, error) {
-	todo := Todo{
+func (r *mutationResolver) CreateTodo(ctx context.Context, input NewTodo) (*Todo, error) {
+	todo := &Todo{
 		ID:   fmt.Sprintf("Todo:%d", len(r.todos)+1),
 		Text: input.Text,
-		User: User{
+		User: &User{
 			ID:   input.UserID,
 			Name: input.UserID,
 		},
@@ -51,6 +51,6 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input NewTodo) (Todo,
 
 type queryResolver struct{ *Resolver }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]Todo, error) {
+func (r *queryResolver) Todos(ctx context.Context) ([]*Todo, error) {
 	return r.todos, nil
 }
