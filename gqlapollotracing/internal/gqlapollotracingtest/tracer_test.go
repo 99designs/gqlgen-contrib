@@ -43,6 +43,7 @@ func TestNewTracer(t *testing.T) {
 
 func doRequest(handler http.Handler, method string, target string, body string) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
 	handler.ServeHTTP(w, r)
