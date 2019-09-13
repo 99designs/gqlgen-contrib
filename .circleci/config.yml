@@ -7,7 +7,6 @@ jobs:
     steps:
     - checkout
     - run: go mod download
-    - run: go get -u github.com/vektah/gorunpkg
     - run: go generate ./... && if [[ $(git --no-pager diff) ]] ; then echo "you need to run go generate" ; git --no-pager diff ; exit 1 ; fi
     - run: go test -race ./...
     - run: curl -sL --fail https://github.com/golangci/golangci-lint/releases/download/v1.18.0/golangci-lint-1.18.0-linux-amd64.tar.gz | tar zxv --strip-components=1 --dir=/go/bin
