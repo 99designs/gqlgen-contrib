@@ -3,6 +3,7 @@ module github.com/99designs/gqlgen-contrib
 go 1.13
 
 require (
+	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/99designs/gqlgen v0.9.3
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.1.0
