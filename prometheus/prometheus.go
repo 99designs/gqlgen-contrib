@@ -14,12 +14,8 @@ const (
 )
 
 var (
-	requestStartedCounter    prometheusclient.Counter
-	requestCompletedCounter  prometheusclient.Counter
-	resolverStartedCounter   *prometheusclient.CounterVec
-	resolverCompletedCounter *prometheusclient.CounterVec
-	timeToResolveField       *prometheusclient.HistogramVec
-	timeToHandleRequest      *prometheusclient.HistogramVec
+	timeToResolveField  *prometheusclient.HistogramVec
+	timeToHandleRequest *prometheusclient.HistogramVec
 )
 
 func Register() {
@@ -27,53 +23,17 @@ func Register() {
 }
 
 func RegisterOn(registerer prometheusclient.Registerer) {
-	requestStartedCounter = prometheusclient.NewCounter(
-		prometheusclient.CounterOpts{
-			Name: "graphql_request_started_total",
-			Help: "Total number of requests started on the graphql server.",
-		},
-	)
-
-	requestCompletedCounter = prometheusclient.NewCounter(
-		prometheusclient.CounterOpts{
-			Name: "graphql_request_completed_total",
-			Help: "Total number of requests completed on the graphql server.",
-		},
-	)
-
-	resolverStartedCounter = prometheusclient.NewCounterVec(
-		prometheusclient.CounterOpts{
-			Name: "graphql_resolver_started_total",
-			Help: "Total number of resolver started on the graphql server.",
-		},
-		[]string{"object", "field"},
-	)
-
-	resolverCompletedCounter = prometheusclient.NewCounterVec(
-		prometheusclient.CounterOpts{
-			Name: "graphql_resolver_completed_total",
-			Help: "Total number of resolver completed on the graphql server.",
-		},
-		[]string{"object", "field"},
-	)
-
 	timeToResolveField = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
-		Name:    "graphql_resolver_duration_ms",
-		Help:    "The time taken to resolve a field by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
-	}, []string{"exitStatus", "object", "field"})
+		Name: "graphql_resolver_duration_ms",
+		Help: "The time taken to resolve a field by graphql server.",
+	}, []string{"exit_status", "object", "field"})
 
 	timeToHandleRequest = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
-		Name:    "graphql_request_duration_ms",
-		Help:    "The time taken to handle a request by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
-	}, []string{"exitStatus"})
+		Name: "graphql_request_duration_ms",
+		Help: "The time taken to handle a request by graphql server.",
+	}, []string{"exit_status", "operation"})
 
 	registerer.MustRegister(
-		requestStartedCounter,
-		requestCompletedCounter,
-		resolverStartedCounter,
-		resolverCompletedCounter,
 		timeToResolveField,
 		timeToHandleRequest,
 	)
@@ -84,24 +44,30 @@ func UnRegister() {
 }
 
 func UnRegisterFrom(registerer prometheusclient.Registerer) {
-	registerer.Unregister(requestStartedCounter)
-	registerer.Unregister(requestCompletedCounter)
-	registerer.Unregister(resolverStartedCounter)
-	registerer.Unregister(resolverCompletedCounter)
 	registerer.Unregister(timeToResolveField)
 	registerer.Unregister(timeToHandleRequest)
 }
 
-func ResolverMiddleware() graphql.FieldMiddleware {
-	return func(ctx context.Context, next graphql.Resolver) (interface{}, error) {
-		rctx := graphql.GetResolverContext(ctx)
+type Metrics struct{}
 
-		resolverStartedCounter.WithLabelValues(rctx.Object, rctx.Field.Name).Inc()
+var _ interface {
+	graphql.HandlerExtension
+	graphql.ResponseInterceptor
+	graphql.FieldInterceptor
+} = Metrics{}
 
-		observerStart := time.Now()
+func (Metrics) ExtensionName() string {
+	return "PrometheusMetrics"
+}
 
-		res, err := next(ctx)
+func (Metrics) Validate(schema graphql.ExecutableSchema) error {
+	return nil
+}
 
+func (Metrics) InterceptField(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
+	fieldCtx := graphql.GetFieldContext(ctx)
+
+	defer func(start time.Time) {
 		var exitStatus string
 		if err != nil {
 			exitStatus = existStatusFailure
@@ -109,39 +75,38 @@ func ResolverMiddleware() graphql.FieldMiddleware {
 			exitStatus = exitStatusSuccess
 		}
 
-		timeToResolveField.WithLabelValues(exitStatus, rctx.Object, rctx.Field.Name).
-			Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
+		timeToResolveField.WithLabelValues(exitStatus, fieldCtx.Object, fieldCtx.Field.Name).
+			Observe(float64(time.Since(start).Nanoseconds() / int64(time.Millisecond)))
+	}(time.Now())
 
-		resolverCompletedCounter.WithLabelValues(rctx.Object, rctx.Field.Name).Inc()
-
-		return res, err
-	}
+	res, err = next(ctx)
+	return res, err
 }
 
-func RequestMiddleware() graphql.RequestMiddleware {
-	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
-		requestStartedCounter.Inc()
+func (Metrics) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) (res *graphql.Response) {
 
-		observerStart := time.Now()
+	opCtx := graphql.GetOperationContext(ctx)
 
-		res := next(ctx)
-
-		rctx := graphql.GetResolverContext(ctx)
-		reqCtx := graphql.GetRequestContext(ctx)
-		errList := reqCtx.GetErrors(rctx)
+	defer func(start time.Time) {
 
 		var exitStatus string
-		if len(errList) > 0 {
+		if res.Errors.Error() != "" {
 			exitStatus = existStatusFailure
 		} else {
 			exitStatus = exitStatusSuccess
 		}
 
-		timeToHandleRequest.With(prometheusclient.Labels{"exitStatus": exitStatus}).
-			Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
+		opName := opCtx.Operation.Name
+		if opName == "" {
+			//parent response case
+			opName = string(opCtx.Operation.Operation)
+		}
 
-		requestCompletedCounter.Inc()
+		timeToHandleRequest.WithLabelValues(exitStatus, opName).
+			Observe(float64(time.Since(start).Nanoseconds() / int64(time.Millisecond)))
 
-		return res
-	}
+	}(time.Now())
+
+	res = next(ctx)
+	return res
 }

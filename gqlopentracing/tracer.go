@@ -2,7 +2,6 @@ package gqlopentracing
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/opentracing/opentracing-go"
@@ -10,84 +9,49 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 )
 
-var _ graphql.Tracer = (tracerImpl)(0)
+type OpenTracingTracer struct{}
 
-// New returns Tracer for OpenTracing.
-// see https://opentracing.io/
-func New() graphql.Tracer {
-	return tracerImpl(0)
+var _ interface {
+	graphql.HandlerExtension
+	graphql.ResponseInterceptor
+	graphql.FieldInterceptor
+} = OpenTracingTracer{}
+
+func (OpenTracingTracer) ExtensionName() string {
+	return "Opentracing"
 }
 
-type tracerImpl int
-
-func (tracerImpl) StartOperationParsing(ctx context.Context) context.Context {
-	return ctx
+func (OpenTracingTracer) Validate(schema graphql.ExecutableSchema) error {
+	return nil
 }
 
-func (tracerImpl) EndOperationParsing(ctx context.Context) {
-}
-
-func (tracerImpl) StartOperationValidation(ctx context.Context) context.Context {
-	return ctx
-}
-
-func (tracerImpl) EndOperationValidation(ctx context.Context) {
-}
-
-func (tracerImpl) StartOperationExecution(ctx context.Context) context.Context {
-	requestContext := graphql.GetRequestContext(ctx)
-	span, ctx := opentracing.StartSpanFromContext(ctx, requestContext.RawQuery)
-	ext.SpanKind.Set(span, "server")
-	ext.Component.Set(span, "gqlgen")
-
-	return ctx
-}
-
-func (tracerImpl) StartFieldExecution(ctx context.Context, field graphql.CollectedField) context.Context {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "unnamed")
-	ext.SpanKind.Set(span, "server")
-	ext.Component.Set(span, "gqlgen")
-
-	return ctx
-}
-
-func (tracerImpl) StartFieldResolverExecution(ctx context.Context, rc *graphql.ResolverContext) context.Context {
-	span := opentracing.SpanFromContext(ctx)
-	span.SetOperationName(rc.Object + "_" + rc.Field.Name)
-	span.SetTag("resolver.object", rc.Object)
-	span.SetTag("resolver.field", rc.Field.Name)
-
-	return ctx
-}
-
-func (tracerImpl) StartFieldChildExecution(ctx context.Context) context.Context {
-	return ctx
-}
-
-func (tracerImpl) EndFieldExecution(ctx context.Context) {
-	span := opentracing.SpanFromContext(ctx)
+func (OpenTracingTracer) InterceptField(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
+	fieldCtx := graphql.GetFieldContext(ctx)
+	span, ctx := opentracing.StartSpanFromContext(ctx, fieldCtx.Path().String())
 	defer span.Finish()
+	ext.SpanKind.Set(span, "server")
+	ext.Component.Set(span, "gqlgen")
 
-	rc := graphql.GetResolverContext(ctx)
-	reqCtx := graphql.GetRequestContext(ctx)
+	return next(ctx)
+}
 
-	errList := reqCtx.GetErrors(rc)
-	if len(errList) != 0 {
-		ext.Error.Set(span, true)
-		span.LogFields(
-			log.String("event", "error"),
-		)
-
-		for idx, err := range errList {
-			span.LogFields(
-				log.String(fmt.Sprintf("error.%d.message", idx), err.Error()),
-				log.String(fmt.Sprintf("error.%d.kind", idx), fmt.Sprintf("%T", err)),
-			)
-		}
+func (OpenTracingTracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+	opCtx := graphql.GetOperationContext(ctx)
+	opName := opCtx.Operation.Name
+	if opName == "" {
+		//parent response case
+		opName = string(opCtx.Operation.Operation)
 	}
-}
-
-func (tracerImpl) EndOperationExecution(ctx context.Context) {
-	span := opentracing.SpanFromContext(ctx)
+	span, ctx := opentracing.StartSpanFromContext(ctx, opName)
 	defer span.Finish()
+	ext.SpanKind.Set(span, "server")
+	ext.Component.Set(span, "gqlgen")
+
+	resp := next(ctx)
+	if err := resp.Errors.Error(); err != "" {
+		ext.Error.Set(span, true)
+		span.LogFields(log.String("error", err))
+	}
+
+	return resp
 }
