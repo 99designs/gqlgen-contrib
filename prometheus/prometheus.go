@@ -96,10 +96,16 @@ func (Metrics) InterceptResponse(ctx context.Context, next graphql.ResponseHandl
 			exitStatus = exitStatusSuccess
 		}
 
-		opName := opCtx.Operation.Name
-		if opName == "" {
+		opName := ""
+		if opCtx.Operation != nil {
+			opName = opCtx.Operation.Name
+		}
+		if opName == "" && opCtx.Operation != nil {
 			//parent response case
 			opName = string(opCtx.Operation.Operation)
+		}
+		if opName == "" {
+			opName = opCtx.OperationName
 		}
 
 		timeToHandleRequest.WithLabelValues(exitStatus, opName).
