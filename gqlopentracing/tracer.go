@@ -37,7 +37,10 @@ func (OpenTracingTracer) InterceptField(ctx context.Context, next graphql.Resolv
 
 func (OpenTracingTracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
 	opCtx := graphql.GetOperationContext(ctx)
-	opName := opCtx.Operation.Name
+	opName := ""
+	if opCtx.Operation != nil {
+		opName = opCtx.Operation.Name
+	}
 	if opName == "" {
 		//parent response case
 		opName = string(opCtx.Operation.Operation)
