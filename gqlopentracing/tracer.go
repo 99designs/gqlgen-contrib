@@ -41,9 +41,12 @@ func (OpenTracingTracer) InterceptResponse(ctx context.Context, next graphql.Res
 	if opCtx.Operation != nil {
 		opName = opCtx.Operation.Name
 	}
-	if opName == "" {
+	if opName == "" && opCtx.Operation != nil {
 		//parent response case
 		opName = string(opCtx.Operation.Operation)
+	}
+	if opName == "" {
+		opName = opCtx.OperationName
 	}
 	span, ctx := opentracing.StartSpanFromContext(ctx, opName)
 	defer span.Finish()
