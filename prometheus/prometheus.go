@@ -88,6 +88,9 @@ func (Metrics) InterceptResponse(ctx context.Context, next graphql.ResponseHandl
 	opCtx := graphql.GetOperationContext(ctx)
 
 	defer func(start time.Time) {
+		if res == nil {
+			return
+		}
 
 		var exitStatus string
 		if res.Errors.Error() != "" {
