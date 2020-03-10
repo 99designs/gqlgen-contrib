@@ -54,6 +54,10 @@ func (OpenTracingTracer) InterceptResponse(ctx context.Context, next graphql.Res
 	ext.Component.Set(span, "gqlgen")
 
 	resp := next(ctx)
+	if resp == nil {
+		return nil
+	}
+
 	if err := resp.Errors.Error(); err != "" {
 		ext.Error.Set(span, true)
 		span.LogFields(log.String("error", err))
