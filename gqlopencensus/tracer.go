@@ -1,147 +1,73 @@
 package gqlopencensus
-//
-//import (
-//	"context"
-//	"fmt"
-//
-//	"github.com/99designs/gqlgen/graphql"
-//	"go.opencensus.io/trace"
-//)
-//
-//var _ graphql.Tracer = (tracerImpl)(0)
-//
-//// New returns Tracer for OpenCensus.
-//// see https://go.opencensus.io/trace
-//func New(opts ...Option) graphql.Tracer {
-//	var tracer tracerImpl
-//	cfg := &config{tracer}
-//
-//	for _, opt := range opts {
-//		opt(cfg)
-//	}
-//
-//	return cfg.tracer
-//}
-//
-//type tracerImpl int
-//
-//func (tracerImpl) StartOperationParsing(ctx context.Context) context.Context {
-//	return ctx
-//}
-//
-//func (tracerImpl) EndOperationParsing(ctx context.Context) {
-//}
-//
-//func (tracerImpl) StartOperationValidation(ctx context.Context) context.Context {
-//	return ctx
-//}
-//
-//func (tracerImpl) EndOperationValidation(ctx context.Context) {
-//}
-//
-//func (tracerImpl) StartOperationExecution(ctx context.Context) context.Context {
-//	ctx, span := trace.StartSpan(ctx, operationName(ctx))
-//	if !span.IsRecordingEvents() {
-//		return ctx
-//	}
-//	requestContext := graphql.GetRequestContext(ctx)
-//	span.AddAttributes(
-//		trace.StringAttribute("request.query", requestContext.RawQuery),
-//	)
-//	if requestContext.ComplexityLimit > 0 {
-//		span.AddAttributes(
-//			trace.Int64Attribute("request.complexityLimit", int64(requestContext.ComplexityLimit)),
-//			trace.Int64Attribute("request.operationComplexity", int64(requestContext.OperationComplexity)),
-//		)
-//	}
-//
-//	for key, val := range requestContext.Variables {
-//		span.AddAttributes(
-//			trace.StringAttribute(fmt.Sprintf("request.variables.%s", key), fmt.Sprintf("%+v", val)),
-//		)
-//	}
-//
-//	return ctx
-//}
-//
-//func (tracerImpl) StartFieldExecution(ctx context.Context, field graphql.CollectedField) context.Context {
-//	ctx, span := trace.StartSpan(ctx, field.ObjectDefinition.Name+"/"+field.Name)
-//	if !span.IsRecordingEvents() {
-//		return ctx
-//	}
-//	span.AddAttributes(
-//		trace.StringAttribute("resolver.object", field.ObjectDefinition.Name),
-//		trace.StringAttribute("resolver.field", field.Name),
-//		trace.StringAttribute("resolver.alias", field.Alias),
-//	)
-//	for _, arg := range field.Arguments {
-//		if arg.Value != nil {
-//			span.AddAttributes(
-//				trace.StringAttribute(fmt.Sprintf("resolver.args.%s", arg.Name), arg.Value.String()),
-//			)
-//		}
-//	}
-//
-//	return ctx
-//}
-//
-//func (tracerImpl) StartFieldResolverExecution(ctx context.Context, rc *graphql.ResolverContext) context.Context {
-//	span := trace.FromContext(ctx)
-//	if !span.IsRecordingEvents() {
-//		return ctx
-//	}
-//	span.AddAttributes(
-//		trace.StringAttribute("resolver.path", fmt.Sprintf("%+v", rc.Path())),
-//	)
-//
-//	return ctx
-//}
-//
-//func (tracerImpl) StartFieldChildExecution(ctx context.Context) context.Context {
-//	return ctx
-//}
-//
-//func (tracerImpl) EndFieldExecution(ctx context.Context) {
-//	span := trace.FromContext(ctx)
-//	defer span.End()
-//	if !span.IsRecordingEvents() {
-//		return
-//	}
-//
-//	rc := graphql.GetResolverContext(ctx)
-//	reqCtx := graphql.GetRequestContext(ctx)
-//	errList := reqCtx.GetErrors(rc)
-//	if len(errList) != 0 {
-//		span.SetStatus(trace.Status{
-//			Code:    2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
-//			Message: errList.Error(),
-//		})
-//		span.AddAttributes(
-//			trace.BoolAttribute("resolver.hasError", true),
-//		)
-//		for idx, err := range errList {
-//			span.AddAttributes(
-//				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.message", idx), err.Error()),
-//				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.kind", idx), fmt.Sprintf("%T", err)),
-//			)
-//		}
-//	}
-//}
-//
-//func (tracerImpl) EndOperationExecution(ctx context.Context) {
-//	span := trace.FromContext(ctx)
-//	defer span.End()
-//}
-//
-//func operationName(ctx context.Context) string {
-//	requestContext := graphql.GetRequestContext(ctx)
-//	requestName := "nameless-operation"
-//	if requestContext.Doc != nil && len(requestContext.Doc.Operations) != 0 {
-//		op := requestContext.Doc.Operations[0]
-//		if op.Name != "" {
-//			requestName = op.Name
-//		}
-//	}
-//
-//	return requestName
-//}
+
+import (
+	"context"
+
+	"github.com/99designs/gqlgen/graphql"
+	"go.opencensus.io/trace"
+)
+
+// Tracer enables opencensus tracing on gqlgen
+type Tracer struct {
+	config
+}
+
+var _ interface {
+	graphql.HandlerExtension
+	graphql.ResponseInterceptor
+	graphql.FieldInterceptor
+} = Tracer{}
+
+// New opencensus tracer for gqlgen
+func New(opts ...Option) *Tracer {
+	tr := defaultTracer()
+	for _, apply := range opts {
+		apply(&tr.config)
+	}
+	return tr
+}
+
+func (Tracer) ExtensionName() string {
+	return "Opencensustracing"
+}
+
+func (Tracer) Validate(schema graphql.ExecutableSchema) error {
+	return nil
+}
+
+func (tr Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
+	fc := graphql.GetFieldContext(ctx)
+	ctx, span := trace.StartSpan(ctx,
+		fc.Path().String(),
+		trace.WithSpanKind(trace.SpanKindServer),
+	)
+	span.AddAttributes(tr.config.fieldAttributes(fc)...)
+	defer span.End()
+
+	return next(ctx)
+}
+
+func (tr Tracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+	oc := graphql.GetOperationContext(ctx)
+	ctx, span := trace.StartSpan(ctx,
+		operationName(oc),
+		trace.WithSpanKind(trace.SpanKindServer),
+	)
+	defer span.End()
+
+	span.AddAttributes(tr.config.operationAttributes(oc)...)
+
+	resp := next(ctx)
+	if resp == nil {
+		return nil
+	}
+
+	if errs := resp.Errors; len(errs) > 0 {
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeUnknown,
+			Message: errs.Error(),
+		})
+	}
+
+	return resp
+}
