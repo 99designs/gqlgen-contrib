@@ -6,7 +6,7 @@ import (
 
 	"github.com/99designs/gqlgen-contrib/gqlopencensus"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/99designs/gqlgen/handler"
+	"github.com/99designs/gqlgen/graphql/handler"
 )
 
 var es graphql.ExecutableSchema
@@ -15,11 +15,10 @@ func Example() {
 	// NOTE: requires setting of Exporter
 	//   trace.RegisterExporter(exporter)
 
-	handler := handler.GraphQL(
-		es,
-		handler.Tracer(gqlopencensus.New()),
-	)
-	http.Handle("/query", handler)
+	srv := handler.NewDefaultServer(es)
+	srv.Use(gqlopencensus.Tracer{})
+
+	http.Handle("/query", srv)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
