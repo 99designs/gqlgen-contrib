@@ -22,6 +22,17 @@ var (
 	timeToHandleRequest      *prometheusclient.HistogramVec
 )
 
+type (
+	Tracer struct{}
+)
+
+var _ interface {
+	graphql.HandlerExtension
+	graphql.OperationInterceptor
+	graphql.ResponseInterceptor
+	graphql.FieldInterceptor
+} = Tracer{}
+
 func Register() {
 	RegisterOn(prometheusclient.DefaultRegisterer)
 }
@@ -92,56 +103,60 @@ func UnRegisterFrom(registerer prometheusclient.Registerer) {
 	registerer.Unregister(timeToHandleRequest)
 }
 
-func ResolverMiddleware() graphql.FieldMiddleware {
-	return func(ctx context.Context, next graphql.Resolver) (interface{}, error) {
-		rctx := graphql.GetResolverContext(ctx)
-
-		resolverStartedCounter.WithLabelValues(rctx.Object, rctx.Field.Name).Inc()
-
-		observerStart := time.Now()
-
-		res, err := next(ctx)
-
-		var exitStatus string
-		if err != nil {
-			exitStatus = existStatusFailure
-		} else {
-			exitStatus = exitStatusSuccess
-		}
-
-		timeToResolveField.WithLabelValues(exitStatus, rctx.Object, rctx.Field.Name).
-			Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
-
-		resolverCompletedCounter.WithLabelValues(rctx.Object, rctx.Field.Name).Inc()
-
-		return res, err
-	}
+func (a Tracer) ExtensionName() string {
+	return "Prometheus"
 }
 
-func RequestMiddleware() graphql.RequestMiddleware {
-	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
-		requestStartedCounter.Inc()
+func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
+	return nil
+}
 
-		observerStart := time.Now()
+func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+	requestStartedCounter.Inc()
+	return next(ctx)
+}
 
-		res := next(ctx)
+func (a Tracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+	errList := graphql.GetErrors(ctx)
 
-		rctx := graphql.GetResolverContext(ctx)
-		reqCtx := graphql.GetRequestContext(ctx)
-		errList := reqCtx.GetErrors(rctx)
-
-		var exitStatus string
-		if len(errList) > 0 {
-			exitStatus = existStatusFailure
-		} else {
-			exitStatus = exitStatusSuccess
-		}
-
-		timeToHandleRequest.With(prometheusclient.Labels{"exitStatus": exitStatus}).
-			Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
-
-		requestCompletedCounter.Inc()
-
-		return res
+	var exitStatus string
+	if len(errList) > 0 {
+		exitStatus = existStatusFailure
+	} else {
+		exitStatus = exitStatusSuccess
 	}
+
+	oc := graphql.GetOperationContext(ctx)
+	observerStart := oc.Stats.OperationStart
+
+	timeToHandleRequest.With(prometheusclient.Labels{"exitStatus": exitStatus}).
+		Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
+
+	requestCompletedCounter.Inc()
+
+	return next(ctx)
+}
+
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+	fc := graphql.GetFieldContext(ctx)
+
+	resolverStartedCounter.WithLabelValues(fc.Object, fc.Field.Name).Inc()
+
+	observerStart := time.Now()
+
+	res, err := next(ctx)
+
+	var exitStatus string
+	if err != nil {
+		exitStatus = existStatusFailure
+	} else {
+		exitStatus = exitStatusSuccess
+	}
+
+	timeToResolveField.WithLabelValues(exitStatus, fc.Object, fc.Field.Name).
+		Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
+
+	resolverCompletedCounter.WithLabelValues(fc.Object, fc.Field.Name).Inc()
+
+	return res, err
 }

@@ -5,76 +5,88 @@ import (
 	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"go.opencensus.io/trace"
 )
 
-var _ graphql.Tracer = (tracerImpl)(0)
-
-// New returns Tracer for OpenCensus.
-// see https://go.opencensus.io/trace
-func New(opts ...Option) graphql.Tracer {
-	var tracer tracerImpl
-	cfg := &config{tracer}
-
-	for _, opt := range opts {
-		opt(cfg)
+type (
+	Tracer struct {
+		ComplexityExtensionName string
+		DataDog                 bool
 	}
+)
 
-	return cfg.tracer
+var _ interface {
+	graphql.HandlerExtension
+	graphql.OperationInterceptor
+	graphql.FieldInterceptor
+} = Tracer{}
+
+func (a Tracer) ExtensionName() string {
+	return "OpenCensus"
 }
 
-type tracerImpl int
-
-func (tracerImpl) StartOperationParsing(ctx context.Context) context.Context {
-	return ctx
+func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
+	return nil
 }
 
-func (tracerImpl) EndOperationParsing(ctx context.Context) {
-}
-
-func (tracerImpl) StartOperationValidation(ctx context.Context) context.Context {
-	return ctx
-}
-
-func (tracerImpl) EndOperationValidation(ctx context.Context) {
-}
-
-func (tracerImpl) StartOperationExecution(ctx context.Context) context.Context {
+func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	ctx, span := trace.StartSpan(ctx, operationName(ctx))
 	if !span.IsRecordingEvents() {
-		return ctx
+		return next(ctx)
 	}
-	requestContext := graphql.GetRequestContext(ctx)
+	defer span.End()
+
+	oc := graphql.GetOperationContext(ctx)
 	span.AddAttributes(
-		trace.StringAttribute("request.query", requestContext.RawQuery),
+		trace.StringAttribute("request.query", oc.RawQuery),
 	)
-	if requestContext.ComplexityLimit > 0 {
+	complexityExtension := a.ComplexityExtensionName
+	if complexityExtension == "" {
+		complexityExtension = "ComplexityLimit" // from extention package
+	}
+	complexityStats, ok := oc.Stats.GetExtension(complexityExtension).(*extension.ComplexityStats)
+	if !ok {
+		// complexity extension is not used
+		complexityStats = &extension.ComplexityStats{}
+	}
+
+	if complexityStats.ComplexityLimit > 0 {
 		span.AddAttributes(
-			trace.Int64Attribute("request.complexityLimit", int64(requestContext.ComplexityLimit)),
-			trace.Int64Attribute("request.operationComplexity", int64(requestContext.OperationComplexity)),
+			trace.Int64Attribute("request.complexityLimit", int64(complexityStats.ComplexityLimit)),
+			trace.Int64Attribute("request.operationComplexity", int64(complexityStats.Complexity)),
 		)
 	}
 
-	for key, val := range requestContext.Variables {
+	for key, val := range oc.Variables {
 		span.AddAttributes(
 			trace.StringAttribute(fmt.Sprintf("request.variables.%s", key), fmt.Sprintf("%+v", val)),
 		)
 	}
 
-	return ctx
+	return next(ctx)
 }
 
-func (tracerImpl) StartFieldExecution(ctx context.Context, field graphql.CollectedField) context.Context {
-	ctx, span := trace.StartSpan(ctx, field.ObjectDefinition.Name+"/"+field.Name)
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+	fc := graphql.GetFieldContext(ctx)
+	ctx, span := trace.StartSpan(ctx, fc.Field.ObjectDefinition.Name+"/"+fc.Field.Name)
+	defer span.End()
 	if !span.IsRecordingEvents() {
-		return ctx
+		return next(ctx)
 	}
 	span.AddAttributes(
-		trace.StringAttribute("resolver.object", field.ObjectDefinition.Name),
-		trace.StringAttribute("resolver.field", field.Name),
-		trace.StringAttribute("resolver.alias", field.Alias),
+		trace.StringAttribute("resolver.path", fc.Path().String()),
+		trace.StringAttribute("resolver.object", fc.Field.ObjectDefinition.Name),
+		trace.StringAttribute("resolver.field", fc.Field.Name),
+		trace.StringAttribute("resolver.alias", fc.Field.Alias),
 	)
-	for _, arg := range field.Arguments {
+	if a.DataDog {
+		span.AddAttributes(
+			// key from gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext#ResourceName
+			trace.StringAttribute("resource.name", operationName(ctx)),
+		)
+	}
+	for _, arg := range fc.Field.Arguments {
 		if arg.Value != nil {
 			span.AddAttributes(
 				trace.StringAttribute(fmt.Sprintf("resolver.args.%s", arg.Name), arg.Value.String()),
@@ -82,35 +94,9 @@ func (tracerImpl) StartFieldExecution(ctx context.Context, field graphql.Collect
 		}
 	}
 
-	return ctx
-}
+	resp, err := next(ctx)
 
-func (tracerImpl) StartFieldResolverExecution(ctx context.Context, rc *graphql.ResolverContext) context.Context {
-	span := trace.FromContext(ctx)
-	if !span.IsRecordingEvents() {
-		return ctx
-	}
-	span.AddAttributes(
-		trace.StringAttribute("resolver.path", fmt.Sprintf("%+v", rc.Path())),
-	)
-
-	return ctx
-}
-
-func (tracerImpl) StartFieldChildExecution(ctx context.Context) context.Context {
-	return ctx
-}
-
-func (tracerImpl) EndFieldExecution(ctx context.Context) {
-	span := trace.FromContext(ctx)
-	defer span.End()
-	if !span.IsRecordingEvents() {
-		return
-	}
-
-	rc := graphql.GetResolverContext(ctx)
-	reqCtx := graphql.GetRequestContext(ctx)
-	errList := reqCtx.GetErrors(rc)
+	errList := graphql.GetFieldErrors(ctx, fc)
 	if len(errList) != 0 {
 		span.SetStatus(trace.Status{
 			Code:    2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
@@ -118,6 +104,7 @@ func (tracerImpl) EndFieldExecution(ctx context.Context) {
 		})
 		span.AddAttributes(
 			trace.BoolAttribute("resolver.hasError", true),
+			trace.Int64Attribute("resolver.errorCount", int64(len(errList))),
 		)
 		for idx, err := range errList {
 			span.AddAttributes(
@@ -126,11 +113,8 @@ func (tracerImpl) EndFieldExecution(ctx context.Context) {
 			)
 		}
 	}
-}
 
-func (tracerImpl) EndOperationExecution(ctx context.Context) {
-	span := trace.FromContext(ctx)
-	defer span.End()
+	return resp, err
 }
 
 func operationName(ctx context.Context) string {

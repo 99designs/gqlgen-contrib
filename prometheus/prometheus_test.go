@@ -8,7 +8,7 @@ import (
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen-contrib/prometheus/internal/graph"
-	"github.com/99designs/gqlgen/handler"
+	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,13 +19,11 @@ func TestPrometheus_ResolverMiddleware_RequestMiddleware(t *testing.T) {
 	prometheus.Register()
 
 	mux := http.NewServeMux()
-	mux.Handle("/query", handler.GraphQL(
-		graph.NewExecutableSchema(graph.Config{
-			Resolvers: &graph.Resolver{},
-		}),
-		handler.RequestMiddleware(prometheus.RequestMiddleware()),
-		handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
-	))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
+		Resolvers: &graph.Resolver{},
+	}))
+	srv.Use(prometheus.Tracer{})
+	mux.Handle("/query", srv)
 
 	for i := 0; i < 100; i++ {
 		resp := doRequest(mux, http.MethodPost, "/query", `{"query":"{ todos { id text } }"}`)
