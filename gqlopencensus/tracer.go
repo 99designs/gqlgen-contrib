@@ -32,10 +32,10 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 
 func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	ctx, span := trace.StartSpan(ctx, operationName(ctx))
+	defer span.End()
 	if !span.IsRecordingEvents() {
 		return next(ctx)
 	}
-	defer span.End()
 
 	oc := graphql.GetOperationContext(ctx)
 	span.AddAttributes(
@@ -118,7 +118,7 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 }
 
 func operationName(ctx context.Context) string {
-	requestContext := graphql.GetRequestContext(ctx)
+	requestContext := graphql.GetOperationContext(ctx)
 	requestName := "nameless-operation"
 	if requestContext.Doc != nil && len(requestContext.Doc.Operations) != 0 {
 		op := requestContext.Doc.Operations[0]
