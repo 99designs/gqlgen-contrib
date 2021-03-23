@@ -2,6 +2,7 @@ package gqlopentracing
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/opentracing/opentracing-go"
@@ -13,7 +14,6 @@ type OpenTracingTracer struct{}
 
 var _ interface {
 	graphql.HandlerExtension
-	graphql.ResponseInterceptor
 	graphql.FieldInterceptor
 } = OpenTracingTracer{}
 
@@ -25,43 +25,49 @@ func (OpenTracingTracer) Validate(schema graphql.ExecutableSchema) error {
 	return nil
 }
 
-func (OpenTracingTracer) InterceptField(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
-	fieldCtx := graphql.GetFieldContext(ctx)
-	span, ctx := opentracing.StartSpanFromContext(ctx, fieldCtx.Path().String())
-	defer span.Finish()
+func (OpenTracingTracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+	opCtx := graphql.GetOperationContext(ctx)
+
+	opName := opCtx.OperationName
+	if opName == "" {
+		opName = "unnamed_operation"
+	}
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, opName)
 	ext.SpanKind.Set(span, "server")
 	ext.Component.Set(span, "gqlgen")
+	defer span.Finish()
 
 	return next(ctx)
 }
 
-func (OpenTracingTracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
-	opCtx := graphql.GetOperationContext(ctx)
-	opName := ""
-	if opCtx.Operation != nil {
-		opName = opCtx.Operation.Name
+func (OpenTracingTracer) InterceptField(ctx context.Context, next graphql.Resolver) ( interface{},  error) {
+	fieldCtx := graphql.GetFieldContext(ctx)
+
+	// dont start spans for a plain field (not a resolver method)
+	if !fieldCtx.IsMethod {
+		return next(ctx)
 	}
-	if opName == "" && opCtx.Operation != nil {
-		//parent response case
-		opName = string(opCtx.Operation.Operation)
-	}
-	if opName == "" {
-		opName = opCtx.OperationName
-	}
-	span, ctx := opentracing.StartSpanFromContext(ctx, opName)
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, fieldCtx.Object + "." + fieldCtx.Field.Name)
 	defer span.Finish()
-	ext.SpanKind.Set(span, "server")
-	ext.Component.Set(span, "gqlgen")
+	span.SetTag("resolver.object", fieldCtx.Object)
+	span.SetTag("resolver.method", fieldCtx.Field.Name)
+	span.SetTag("resolver.path", fieldCtx.Path())
 
-	resp := next(ctx)
-	if resp == nil {
-		return nil
-	}
+	res, err := next(ctx)
 
-	if err := resp.Errors.Error(); err != "" {
+	errList := graphql.GetFieldErrors(ctx, fieldCtx)
+	if len(errList) != 0 {
 		ext.Error.Set(span, true)
-		span.LogFields(log.String("error", err))
+		span.LogFields(
+			log.String("event", "error"),
+		)
+
+		for idx, err := range errList {
+			span.LogFields(log.String(fmt.Sprintf("error.%d.message", idx), err.Error()))
+		}
 	}
 
-	return resp
+	return res, err
 }
