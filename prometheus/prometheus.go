@@ -2,15 +2,19 @@ package prometheus
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	prometheusclient "github.com/prometheus/client_golang/prometheus"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 const (
 	existStatusFailure = "failure"
 	exitStatusSuccess  = "success"
+	errCodeExt         = "error_code"
 )
 
 var (
@@ -26,7 +30,7 @@ func RegisterOn(registerer prometheusclient.Registerer) {
 	timeToResolveField = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
 		Name: "graphql_resolver_duration_ms",
 		Help: "The time taken to resolve a field by graphql server.",
-	}, []string{"exit_status", "object", "field"})
+	}, []string{"err_code", "exit_status", "object", "field"})
 
 	timeToHandleRequest = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
 		Name: "graphql_request_duration_ms",
@@ -75,7 +79,15 @@ func (Metrics) InterceptField(ctx context.Context, next graphql.Resolver) (res i
 			exitStatus = exitStatusSuccess
 		}
 
-		timeToResolveField.WithLabelValues(exitStatus, fieldCtx.Object, fieldCtx.Field.Name).
+		var errCode string
+		var gqlErr *gqlerror.Error
+		if err != nil && errors.As(err, &gqlErr) {
+			if errCodeVal, ok := gqlErr.Extensions[errCodeExt]; ok {
+				errCode = fmt.Sprint(errCodeVal)
+			}
+		}
+
+		timeToResolveField.WithLabelValues(errCode, exitStatus, fieldCtx.Object, fieldCtx.Field.Name).
 			Observe(float64(time.Since(start).Nanoseconds() / int64(time.Millisecond)))
 	}(time.Now())
 
@@ -84,7 +96,6 @@ func (Metrics) InterceptField(ctx context.Context, next graphql.Resolver) (res i
 }
 
 func (Metrics) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) (res *graphql.Response) {
-
 	opCtx := graphql.GetOperationContext(ctx)
 
 	defer func(start time.Time) {

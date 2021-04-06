@@ -7,7 +7,5 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.5.0
 	github.com/stretchr/testify v1.4.0
-	github.com/vektah/gqlparser v1.1.2
 	github.com/vektah/gqlparser/v2 v2.0.1
-	go.opencensus.io v0.22.3
 )
