@@ -51,6 +51,15 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 
 	res, err := next(ctx)
 
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogFields(
+			log.String("event", "error"),
+			log.String("error.message", err.Error()),
+			log.String("error.kind", fmt.Sprintf("%T", err)),
+		)
+	}
+
 	errList := graphql.GetFieldErrors(ctx, fc)
 	if len(errList) != 0 {
 		ext.Error.Set(span, true)
