@@ -30,9 +30,13 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 
 func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	oc := graphql.GetOperationContext(ctx)
-	span, ctx := opentracing.StartSpanFromContext(ctx, oc.RawQuery)
+	span, ctx := opentracing.StartSpanFromContext(ctx, "graphql")
 	ext.SpanKind.Set(span, "server")
 	ext.Component.Set(span, "gqlgen")
+
+	span.LogFields(
+		log.String("raw-query", oc.RawQuery),
+	)
 	defer span.Finish()
 
 	return next(ctx)
@@ -40,8 +44,7 @@ func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHa
 
 func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
 	fc := graphql.GetFieldContext(ctx)
-	span := opentracing.SpanFromContext(ctx)
-	span.SetOperationName(fc.Object + "_" + fc.Field.Name)
+	span, ctx := opentracing.StartSpanFromContext(ctx, fc.Object+"_"+fc.Field.Name)
 	span.SetTag("resolver.object", fc.Object)
 	span.SetTag("resolver.field", fc.Field.Name)
 	defer span.Finish()
