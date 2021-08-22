@@ -11,7 +11,13 @@ import (
 )
 
 type (
-	Tracer struct{}
+	Tracer struct {
+		OperationName string
+	}
+)
+
+const (
+	DefaultOperationName = "graphql"
 )
 
 var _ interface {
@@ -30,7 +36,14 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 
 func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	oc := graphql.GetOperationContext(ctx)
-	span, ctx := opentracing.StartSpanFromContext(ctx, "graphql")
+
+	// Get operation name
+	operationName := a.OperationName
+	if operationName == "" {
+		operationName = DefaultOperationName
+	}
+
+	span, ctx := opentracing.StartSpanFromContext(ctx, operationName)
 	ext.SpanKind.Set(span, "server")
 	ext.Component.Set(span, "gqlgen")
 
