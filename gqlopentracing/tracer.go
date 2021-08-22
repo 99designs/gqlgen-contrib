@@ -12,7 +12,8 @@ import (
 
 type (
 	Tracer struct {
-		OperationName string
+		DisableNonResolverBindingTrace bool
+		OperationName                  string
 	}
 )
 
@@ -57,6 +58,12 @@ func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHa
 
 func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
 	fc := graphql.GetFieldContext(ctx)
+
+	// Check if this field is disabled
+	if a.DisableNonResolverBindingTrace && !fc.IsMethod {
+		return next(ctx)
+	}
+
 	span, ctx := opentracing.StartSpanFromContext(ctx, fc.Object+"_"+fc.Field.Name)
 	span.SetTag("resolver.object", fc.Object)
 	span.SetTag("resolver.field", fc.Field.Name)
