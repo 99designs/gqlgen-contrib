@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	existStatusFailure = "failure"
-	exitStatusSuccess  = "success"
+	exitStatusFailure = "failure"
+	exitStatusSuccess = "success"
 )
 
 var (
@@ -121,7 +121,7 @@ func (a Tracer) InterceptResponse(ctx context.Context, next graphql.ResponseHand
 
 	var exitStatus string
 	if len(errList) > 0 {
-		exitStatus = existStatusFailure
+		exitStatus = exitStatusFailure
 	} else {
 		exitStatus = exitStatusSuccess
 	}
@@ -148,7 +148,7 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 
 	var exitStatus string
 	if err != nil {
-		exitStatus = existStatusFailure
+		exitStatus = exitStatusFailure
 	} else {
 		exitStatus = exitStatusSuccess
 	}
