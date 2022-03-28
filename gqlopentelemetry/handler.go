@@ -102,10 +102,10 @@ func (a Handler) InterceptField(ctx context.Context, next graphql.Resolver) (int
 }
 
 func operationName(ctx context.Context) string {
-	requestContext := graphql.GetRequestContext(ctx)
+	opContext := graphql.GetOperationContext(ctx)
 	requestName := "nameless-operation"
-	if requestContext.Doc != nil && len(requestContext.Doc.Operations) != 0 {
-		op := requestContext.Doc.Operations[0]
+	if opContext.Doc != nil && len(opContext.Doc.Operations) != 0 {
+		op := opContext.Doc.Operations[0]
 		if op.Name != "" {
 			requestName = op.Name
 		}
