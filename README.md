@@ -12,10 +12,10 @@ This README contains a curated list of awesome [99designs/gqlgen](https://github
 - [99designs/gqlgen/plugin/resolvergen](https://github.com/99designs/gqlgen/tree/master/plugin/resolvergen) - Generate go resolver from GraphQL schema
 - [99designs/gqlgen/plugin/federation](https://github.com/99designs/gqlgen/tree/master/plugin/federation) - Generate go Apollo Federation resolver from GraphQL schema
 - [ravilushqa/otelgqlgen](https://github.com/ravilushqa/otelgqlgen) - OpenTelemetry instrumentation for 99designs/gqlgen
-- [gqlapollotracing](./gqlapollotracing) - Apollo tracing instrumentation for 99designs/gqlgen
+- [gqlapollotracing](https://github.com/99designs/gqlgen/tree/master/graphql/handler/apollotracing) - Apollo tracing instrumentation for 99designs/gqlgen
 - [gqlopencensus](./gqlopencensus) - OpenCensus instrumentation for 99designs/gqlgen
 - [gqlopentracing](./gqlopentracing) - OpenTracing instrumentation for 99designs/gqlgen
-- [gqlprometheus](./gqlprometheus) - Prometheus instrumentation for 99designs/gqlgen
+- [prometheus](./prometheus) - Prometheus instrumentation for 99designs/gqlgen
 - [fasibio/autogql](https://github.com/fasibio/autogql) - CRUD SQL generator plugin
 - [Warashi/compgen](https://github.com/Warashi/compgen) -  gqlgen plugin designed to simplify the generation of ComplexityRoot.
 - [StevenACoffman/gqlgen_plugins](https://github.com/StevenACoffman/gqlgen-plugins) - some Internal Khan Academy plugins that might be useful to others.
