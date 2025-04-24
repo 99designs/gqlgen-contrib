@@ -18,6 +18,7 @@ This README contains a curated list of awesome [99designs/gqlgen](https://github
 - [Warashi/compgen](https://github.com/Warashi/compgen) -  gqlgen plugin designed to simplify the generation of ComplexityRoot.
 - [StevenACoffman/gqlgen_plugins](https://github.com/StevenACoffman/gqlgen-plugins) - some Internal Khan Academy plugins that might be useful to others.
 - [Ent ](https://entgo.io/docs/graphql/) - Ent, entity framework for Go, GraphQL plugin
+- [theopenlane/gqlgen-plugins](https://github.com/theopenlane/gqlgen-plugins) - Plugins for generating custom resolvers, bulk requests, field generation, and search resolver generation
 
 ### Client and Doc Generators
 - [Khan/genqlient](https://github.com/Khan/genqlient) - Generate go GraphQL client from GraphQL query
