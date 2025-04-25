@@ -51,6 +51,7 @@ This README contains a curated list of awesome [99designs/gqlgen](https://github
 - [graphql-go-tools](https://github.com/wundergraph/graphql-go-tools) - Apollo Federation Gateway Replacement in Go
 - [Nautilus](https://gateway.nautilus.dev/) - Go Federated GraphQL Gateway
 - [Bramble](https://movio.github.io/bramble/#/) - Go Federated GraphQL Gateway
+- [fedeway](https://github.com/vvakame/fedeway) - Go Apollo Federated GraphQL Gateway
 
 ### General GraphQL
 - [vektah/gqlparser](https://github.com/vektah/gqlparser) - GrahpQL schema and query parser
