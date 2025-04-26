@@ -1,6 +1,8 @@
 module github.com/99designs/gqlgen-contrib
 
-go 1.18
+go 1.22
+
+toolchain go1.23.6
 
 require (
 	github.com/99designs/gqlgen v0.17.31
