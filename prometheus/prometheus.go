@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/99designs/gqlgen/graphql"
 	prometheusclient "github.com/prometheus/client_golang/prometheus"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 const (
@@ -111,12 +112,18 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 	return nil
 }
 
-func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+func (a Tracer) InterceptOperation(
+	ctx context.Context,
+	next graphql.OperationHandler,
+) graphql.ResponseHandler {
 	requestStartedCounter.Inc()
 	return next(ctx)
 }
 
-func (a Tracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+func (a Tracer) InterceptResponse(
+	ctx context.Context,
+	next graphql.ResponseHandler,
+) *graphql.Response {
 	errList := graphql.GetErrors(ctx)
 
 	var exitStatus string

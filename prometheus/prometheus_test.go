@@ -6,16 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/99designs/gqlgen-contrib/prometheus/internal/graph"
-	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/99designs/gqlgen-contrib/prometheus"
+	"github.com/99designs/gqlgen-contrib/prometheus/internal/graph"
+	"github.com/99designs/gqlgen/graphql/handler"
 )
 
 func TestPrometheus_ResolverMiddleware_RequestMiddleware(t *testing.T) {
-
 	prometheus.Register()
 
 	mux := http.NewServeMux()
@@ -45,7 +45,12 @@ func TestPrometheus_ResolverMiddleware_RequestMiddleware(t *testing.T) {
 	assert.Contains(t, body, "graphql_resolver_completed_total")
 }
 
-func doRequest(handler http.Handler, method string, target string, body string) *httptest.ResponseRecorder {
+func doRequest(
+	handler http.Handler,
+	method string,
+	target string,
+	body string,
+) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"go.opencensus.io/trace"
+
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"go.opencensus.io/trace"
 )
 
 type (
@@ -30,7 +31,10 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 	return nil
 }
 
-func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+func (a Tracer) InterceptOperation(
+	ctx context.Context,
+	next graphql.OperationHandler,
+) graphql.ResponseHandler {
 	ctx, span := trace.StartSpan(ctx, operationName(ctx))
 	if !span.IsRecordingEvents() {
 		return next(ctx)
@@ -60,7 +64,10 @@ func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHa
 
 	for key, val := range oc.Variables {
 		span.AddAttributes(
-			trace.StringAttribute(fmt.Sprintf("request.variables.%s", key), fmt.Sprintf("%+v", val)),
+			trace.StringAttribute(
+				fmt.Sprintf("request.variables.%s", key),
+				fmt.Sprintf("%+v", val),
+			),
 		)
 	}
 
@@ -89,7 +96,10 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 	for _, arg := range fc.Field.Arguments {
 		if arg.Value != nil {
 			span.AddAttributes(
-				trace.StringAttribute(fmt.Sprintf("resolver.args.%s", arg.Name), arg.Value.String()),
+				trace.StringAttribute(
+					fmt.Sprintf("resolver.args.%s", arg.Name),
+					arg.Value.String(),
+				),
 			)
 		}
 	}
@@ -109,7 +119,10 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 		for idx, err := range errList {
 			span.AddAttributes(
 				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.message", idx), err.Error()),
-				trace.StringAttribute(fmt.Sprintf("resolver.error.%d.kind", idx), fmt.Sprintf("%T", err)),
+				trace.StringAttribute(
+					fmt.Sprintf("resolver.error.%d.kind", idx),
+					fmt.Sprintf("%T", err),
+				),
 			)
 		}
 	}

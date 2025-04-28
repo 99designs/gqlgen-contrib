@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type (
@@ -35,7 +36,10 @@ func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 	return nil
 }
 
-func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+func (a Tracer) InterceptOperation(
+	ctx context.Context,
+	next graphql.OperationHandler,
+) graphql.ResponseHandler {
 	oc := graphql.GetOperationContext(ctx)
 
 	// Get operation name
@@ -70,7 +74,6 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 	defer span.Finish()
 
 	res, err := next(ctx)
-
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(
