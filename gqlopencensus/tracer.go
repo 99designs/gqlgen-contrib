@@ -47,7 +47,7 @@ func (a Tracer) InterceptOperation(
 	)
 	complexityExtension := a.ComplexityExtensionName
 	if complexityExtension == "" {
-		complexityExtension = "ComplexityLimit" // from extention package
+		complexityExtension = "ComplexityLimit" // from extension package
 	}
 	complexityStats, ok := oc.Stats.GetExtension(complexityExtension).(*extension.ComplexityStats)
 	if !ok {
@@ -74,7 +74,7 @@ func (a Tracer) InterceptOperation(
 	return next(ctx)
 }
 
-func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (any, error) {
 	fc := graphql.GetFieldContext(ctx)
 	ctx, span := trace.StartSpan(ctx, fc.Field.ObjectDefinition.Name+"/"+fc.Field.Name)
 	defer span.End()
@@ -131,7 +131,7 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (inte
 }
 
 func operationName(ctx context.Context) string {
-	requestContext := graphql.GetRequestContext(ctx)
+	requestContext := graphql.GetOperationContext(ctx)
 	requestName := "nameless-operation"
 	if requestContext.Doc != nil && len(requestContext.Doc.Operations) != 0 {
 		op := requestContext.Doc.Operations[0]

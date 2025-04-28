@@ -25,7 +25,7 @@ func TestPrometheus_ResolverMiddleware_RequestMiddleware(t *testing.T) {
 	srv.Use(prometheus.Tracer{})
 	mux.Handle("/query", srv)
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		resp := doRequest(mux, http.MethodPost, "/query", `{"query":"{ todos { id text } }"}`)
 		require.Equal(t, http.StatusOK, resp.Code)
 	}
