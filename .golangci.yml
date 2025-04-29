@@ -85,7 +85,7 @@ linters:
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     - makezero # finds slice declarations with non-zero initial length
     - mirror # reports wrong mirror patterns of bytes/strings usage
-    - misspell
+    - misspell # finds commonly misspelled English words in comments
     - mnd # detects magic numbers
     - musttag # enforces field tags in (un)marshaled structs
     - nakedret # finds naked returns in functions greater than a specified function length
@@ -155,7 +155,6 @@ linters:
     #- nlreturn # [too strict and mostly code is not more readable] checks for a new line before return and branch statements to increase code clarity
     #- paralleltest # [too many false positives] detects missing usage of t.Parallel() method in your Go test
     #- tagliatelle # checks the struct tags
-    #- thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
 
   # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
@@ -218,6 +217,10 @@ linters:
               desc: Use log/slog instead, see https://go.dev/blog/slog
 
     errcheck:
+      exclude-functions:
+        - (io.Writer).Write
+        - io.Copy
+        - io.WriteString
       # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
       # Such cases aren't reported by default.
       # Default: false
@@ -274,6 +277,17 @@ linters:
       # Default: 40
       statements: 50
 
+      fuzz:
+        # Check *testing.F is first param (or after context.Context) of helper function.
+        # Default: true
+        first: true
+        # Check *testing.F param has name f.
+        # Default: true
+        name: true
+        # Check f.Helper() begins helper function.
+        # Default: true
+        begin: true
+
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
       # Default: true
@@ -288,6 +302,10 @@ linters:
       # Settings passed to gocritic.
       # The settings key is the name of a supported gocritic checker.
       # The list of supported checkers can be found at https://go-critic.com/overview.
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
       settings:
         captLocal:
           # Whether to restrict checker to params only.
@@ -515,37 +533,3 @@ linters:
       # Enable/disable `os.TempDir()` detections.
       # Default: false
       os-temp-dir: true
-
-  exclusions:
-    # Log a warning if an exclusion rule is unused.
-    # Default: false
-    warn-unused: true
-    # Predefined exclusion rules.
-    # Default: []
-    presets:
-      - std-error-handling
-      - common-false-positives
-    # Excluding configuration per-path, per-linter, per-text and per-source.
-    rules:
-      - source: 'TODO'
-        linters: [ godot ]
-      - text: 'should have a package comment'
-        linters: [ revive ]
-      - text: 'exported \S+ \S+ should have comment( \(or a comment on this block\))? or be unexported'
-        linters: [ revive ]
-      - text: 'package comment should be of the form ".+"'
-        source: '// ?(nolint|TODO)'
-        linters: [ revive ]
-      - text: 'comment on exported \S+ \S+ should be of the form ".+"'
-        source: '// ?(nolint|TODO)'
-        linters: [ revive, staticcheck ]
-      - path: '_test\.go'
-        linters:
-          - bodyclose
-          - dupl
-          - errcheck
-          - funlen
-          - goconst
-          - gosec
-          - noctx
-          - wrapcheck
