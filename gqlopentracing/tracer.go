@@ -60,7 +60,7 @@ func (a Tracer) InterceptOperation(
 	return next(ctx)
 }
 
-func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (any, error) {
 	fc := graphql.GetFieldContext(ctx)
 
 	// Check if this field is disabled

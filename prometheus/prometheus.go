@@ -144,7 +144,7 @@ func (a Tracer) InterceptResponse(
 	return next(ctx)
 }
 
-func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (any, error) {
 	fc := graphql.GetFieldContext(ctx)
 
 	resolverStartedCounter.WithLabelValues(fc.Object, fc.Field.Name).Inc()
