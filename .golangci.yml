@@ -11,12 +11,12 @@ issues:
   # Default: 3
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: false
+  new: true
 formatters:
   enable:
     - golines
     - gofumpt
-    - gci  
+    - gci
 
     ## you may want to enable
     # gci # checks if code and import statements are formatted, with additional rules
@@ -277,17 +277,6 @@ linters:
       # Default: 40
       statements: 50
 
-      fuzz:
-        # Check *testing.F is first param (or after context.Context) of helper function.
-        # Default: true
-        first: true
-        # Check *testing.F param has name f.
-        # Default: true
-        name: true
-        # Check f.Helper() begins helper function.
-        # Default: true
-        begin: true
-
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
       # Default: true
@@ -527,6 +516,16 @@ linters:
         # Default: true
         name: true
         # Check tb.Helper() begins helper function.
+        # Default: true
+        begin: true
+      fuzz:
+        # Check *testing.F is first param (or after context.Context) of helper function.
+        # Default: true
+        first: true
+        # Check *testing.F param has name f.
+        # Default: true
+        name: true
+        # Check f.Helper() begins helper function.
         # Default: true
         begin: true
     usetesting:
