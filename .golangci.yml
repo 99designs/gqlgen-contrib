@@ -11,7 +11,7 @@ issues:
   # Default: 3
   max-issues-per-linter: 0
   max-same-issues: 0
-  new: false
+  new: true
 formatters:
   enable:
     - golines
