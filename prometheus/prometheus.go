@@ -69,16 +69,19 @@ func RegisterOn(registerer prometheusclient.Registerer) {
 		[]string{"object", "field"},
 	)
 
+	const start, factor, count = 1, 2, 11
+	//nolint:promlinter // change the label name will break the existing metrics
 	timeToResolveField = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
 		Name:    "graphql_resolver_duration_ms",
 		Help:    "The time taken to resolve a field by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
+		Buckets: prometheusclient.ExponentialBuckets(start, factor, count),
 	}, []string{"exitStatus", "object", "field"})
 
+	//nolint:promlinter // change the label name will break the existing metrics
 	timeToHandleRequest = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
 		Name:    "graphql_request_duration_ms",
 		Help:    "The time taken to handle a request by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
+		Buckets: prometheusclient.ExponentialBuckets(start, factor, count),
 	}, []string{"exitStatus"})
 
 	registerer.MustRegister(

@@ -46,7 +46,7 @@ func TestPrometheus_ResolverMiddleware_RequestMiddleware(t *testing.T) {
 }
 
 func doRequest(
-	handler http.Handler,
+	httpHandler http.Handler,
 	method string,
 	target string,
 	body string,
@@ -54,6 +54,6 @@ func doRequest(
 	r := httptest.NewRequest(method, target, strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
+	httpHandler.ServeHTTP(w, r)
 	return w
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 )
 
+const CodeUnknown int32 = 2
+
 type (
 	Tracer struct {
 		ComplexityExtensionName string
@@ -109,7 +111,7 @@ func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (any,
 	errList := graphql.GetFieldErrors(ctx, fc)
 	if len(errList) != 0 {
 		span.SetStatus(trace.Status{
-			Code:    2, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
+			Code:    CodeUnknown, // UNKNOWN, HTTP Mapping: 500 Internal Server Error
 			Message: errList.Error(),
 		})
 		span.AddAttributes(
