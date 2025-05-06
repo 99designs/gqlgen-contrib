@@ -1,0 +1,17 @@
+# Read more about this file syntax here:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence,
+# @StevenACoffman will be requested for
+# review when someone opens a pull request.
+*       @StevenACoffman
+
+
+# Don't automatically assign reviewers on PRs that only modify these files.
+# If they have no owner listed, these files are not owned by anyone.
+# If you would like to be informed of changes to a particular portion of this repository
+# add your GitHub username to space delimited list below
+gqlapollotracing      @StevenACoffman
+gqlopencensus         @StevenACoffman
+gqlopentracing        @StevenACoffman
+prometheus            @StevenACoffman
