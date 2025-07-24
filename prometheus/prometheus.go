@@ -139,12 +139,14 @@ func (a Tracer) InterceptResponse(
 	oc := graphql.GetOperationContext(ctx)
 	observerStart := oc.Stats.OperationStart
 
+	res := next(ctx)
+
 	timeToHandleRequest.With(prometheusclient.Labels{"exitStatus": exitStatus}).
 		Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
 
 	requestCompletedCounter.Inc()
 
-	return next(ctx)
+	return res
 }
 
 func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (any, error) {
